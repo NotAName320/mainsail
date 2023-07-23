@@ -153,4 +153,5 @@ dmypy.json
 cython_debug/
 
 /.idea/
+/tasks/
 config.json

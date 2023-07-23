@@ -62,7 +62,7 @@ def main():
 
         exit(1)
 
-    print(f'User agent set to {config["main_nation"]}')
+    print(f'User agent set to {config["main_nation"]}...')
 
     client = NSSession(SCRIPT_NAME, VERSION, AUTHOR, config['main_nation'], link_to_src=SOURCE_LINK)
 
@@ -72,6 +72,40 @@ def main():
         print(f'Unable to log in to {config["bot_username"]}. Please check passsword in config.', file=sys.stderr)
 
         exit(1)
+
+    print(f'Logged into {config["bot_username"]}!')
+
+    if not os.path.isdir('./tasks'):
+        print(f'Tasks folder not found... creating with examples.', file=sys.stderr)
+
+        os.makedirs('./tasks')
+
+        example_command = {
+            'enabled': True,
+            'name': 'Ping',
+            'description': 'A command that pongs.',
+            'content': '[user] pong!',
+            'type': 'command',
+            'ros_only': False,
+            'respond_to': '[bot_nation] ping',
+        }
+
+        example_schedule = {
+            'enabled': True,
+            'name': '24 Hours',
+            'description': 'Posts on the RMB every 24 hours.',
+            'content': 'It\'s been 24 hours since this bot started!',
+            'type': 'schedule',
+            'interval': '1d',
+            'execute_on_start': False,
+            'target': 'rmb'
+        }
+
+        with open('./tasks/example_command.json', 'w') as file:
+            json.dump(example_command, file, indent=4)
+
+        with open('./tasks/example_schedule.json', 'w') as file:
+            json.dump(example_schedule, file, indent=4)
 
 
 if __name__ == '__main__':
