@@ -45,7 +45,7 @@ def main():
 
     print(f'User agent set to {config["main_nation"]}')
 
-    client = NSSession(SCRIPT_NAME, VERSION, AUTHOR, config['main_nation'], link_to_src='')
+    client = NSSession(SCRIPT_NAME, VERSION, AUTHOR, config['main_nation'], link_to_src=SOURCE_LINK)
 
     try:
         client.api_request('nation', target=config['bot_username'], shard='ping', password=config['bot_password'])
