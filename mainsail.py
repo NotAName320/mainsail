@@ -19,10 +19,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import json
 import os
+from pathlib import Path
 import sys
+import time
+from typing import List
 
 from httpx import HTTPStatusError
 from nsdotpy.session import NSSession
+import schedule
+
+from command_handler import CommandHandler
+from mainsail_tasks import CommandTask, ScheduleTask
 
 
 SCRIPT_NAME = 'mainsail'  # working title for now
@@ -30,7 +37,7 @@ AUTHOR = 'Notanam'
 VERSION = '0.0.1'  # increment every release
 SOURCE_LINK = 'https://github.com/NotAName320/mainsail'
 
-SETTINGS_TO_CHECK_FOR = ['main_nation', 'bot_username', 'bot_password']
+SETTINGS_TO_CHECK_FOR = ['main_nation', 'bot_username', 'bot_password', 'region']
 
 
 def main():
@@ -65,9 +72,12 @@ def main():
     print(f'User agent set to {config["main_nation"]}...')
 
     client = NSSession(SCRIPT_NAME, VERSION, AUTHOR, config['main_nation'], link_to_src=SOURCE_LINK)
+    client.nation = config['bot_username']
+    client.region = config['region']
+    client.password = config['bot_password']
 
     try:
-        client.api_request('nation', target=config['bot_username'], shard='ping', password=config['bot_password'])
+        client.api_request('nation', target=config['bot_username'], shard='ping', password=client.password)
     except HTTPStatusError:
         print(f'Unable to log in to {config["bot_username"]}. Please check passsword in config.', file=sys.stderr)
 
@@ -106,6 +116,39 @@ def main():
 
         with open('./tasks/example_schedule.json', 'w') as file:
             json.dump(example_schedule, file, indent=4)
+
+    commands: List[CommandTask] = []
+    schedules: List[ScheduleTask] = []
+    for file in Path('./tasks').glob('*.json'):
+        try:
+            with open('./tasks/' + file.name, 'r') as task_file:
+                task: dict = json.load(task_file)
+
+                if not task['enabled']:
+                    continue
+
+                if task.pop('type') == 'command':
+                    commands.append(CommandTask(task))
+                    print(f'Successfully loaded command {task["name"]} from file {file.name}!')
+                else:
+                    schedules.append(ScheduleTask(task))
+                    print(f'Successfully loaded schedule {task["name"]} from file {file.name}!')
+        except KeyError:
+            print(f'Failed to load {file.name} (formatting error)!', file=sys.stderr)
+            continue
+
+    command_listener = CommandHandler(commands)
+
+    schedule.every(10).seconds.do(command_listener.scan_rmb, client=client)
+
+    try:
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print('Stopping!', file=sys.stderr)
+
+        exit(0)
 
 
 if __name__ == '__main__':
